@@ -123,6 +123,7 @@ TABLAS_MYSQL = [
         empleado_id INT NOT NULL UNIQUE,
         nombre_usuario VARCHAR(50) NOT NULL UNIQUE,
         password_hash VARCHAR(255) NOT NULL,
+         rol varchar(10) NOT NULL DEFAULT 'empleado' CHECK (rol IN ('admin','empleado')),
         FOREIGN KEY (empleado_id) REFERENCES empleado(id) ON DELETE CASCADE ON UPDATE CASCADE
     )"""
 ]
