@@ -1,3 +1,4 @@
+
 import os
 import sqlite3
 import pymysql
@@ -5,21 +6,28 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def obtener_motor():
+    return os.getenv("DB_ENGINE", "sqlite").lower()
+
+
 def marcador_sql():
     if obtener_motor() == "sqlite":
         return "?"
     return "%s"
 
-def obtener_motor():
-    return os.getenv("DB_ENGINE", "sqlite").lower()
 
 def abrir_conexion():
     motor = obtener_motor()
+
     if motor == "sqlite":
-        conexion = sqlite3.connect(os.getenv("DB_NAME", "ecotech.db"))
+        conexion = sqlite3.connect(
+            os.getenv("DB_NAME", "ecotech.db")
+        )
         conexion.execute("PRAGMA foreign_keys = ON")
         return conexion
-    if motor == "mysql":
+
+    elif motor in ("mysql", "mariadb"):
         return pymysql.connect(
             host=os.getenv("DB_HOST", "localhost"),
             port=int(os.getenv("DB_PORT", "3306")),
@@ -28,4 +36,6 @@ def abrir_conexion():
             database=os.getenv("DB_NAME"),
             charset="utf8mb4",
         )
-    raise ValueError(f"Motor no soportado: {motor}")
+
+    else:
+        raise ValueError(f"Motor no soportado: {motor}")
