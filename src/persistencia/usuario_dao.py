@@ -1,5 +1,5 @@
-from persistencia.conexion import abrir_conexion, marcador_sql
-from dominio.usuario import Usuario
+from src.dominio.usuario import Usuario
+from src.persistencia.conexion import abrir_conexion, marcador_sql
 
 
 class UsuarioDAO:
@@ -7,10 +7,11 @@ class UsuarioDAO:
     @staticmethod
     def _fila_a_usuario(fila):
         return Usuario(
+            nombre_usuario=fila[1],
+            password_hash=fila[2],
+            empleado_id=fila[3],
+            rol=fila[4],
             id=fila[0],
-            empleado_id=fila[1],
-            nombre_usuario=fila[2],
-            password_hash=fila[3]
         )
 
     @staticmethod
@@ -19,16 +20,17 @@ class UsuarioDAO:
         try:
             conexion = abrir_conexion()
             cursor = conexion.cursor()
-            marca = marcador_sql()
+            m = marcador_sql()
             sql = (
-                "INSERT INTO usuario "
-                "(empleado_id, nombre_usuario, password_hash) "
-                f"VALUES ({marca}, {marca}, {marca})"
+                f"INSERT INTO usuario "
+                f"(nombre_usuario, password_hash, empleado_id, rol) "
+                f"VALUES ({m}, {m}, {m}, {m})"
             )
             cursor.execute(sql, (
-                usuario.empleado_id,
                 usuario.nombre_usuario,
-                usuario.password_hash
+                usuario.password_hash,
+                usuario.empleado_id,
+                usuario.rol,
             ))
             conexion.commit()
             usuario.id = cursor.lastrowid
@@ -42,92 +44,37 @@ class UsuarioDAO:
                 conexion.close()
 
     @staticmethod
-    def actualizar(usuario):
+    def buscar_por_nombre(nombre):
         conexion = None
         try:
             conexion = abrir_conexion()
             cursor = conexion.cursor()
-            marca = marcador_sql()
-            sql = (
-                "UPDATE usuario SET "
-                f"empleado_id = {marca}, nombre_usuario = {marca}, "
-                f"password_hash = {marca} "
-                f"WHERE id = {marca}"
+            m = marcador_sql()
+            cursor.execute(
+                f"SELECT id, nombre_usuario, password_hash, "
+                f"empleado_id, rol FROM usuario WHERE nombre_usuario = {m}",
+                (nombre,),
             )
-            cursor.execute(sql, (
-                usuario.empleado_id,
-                usuario.nombre_usuario,
-                usuario.password_hash,
-                usuario.id
-            ))
-            actualizado = cursor.rowcount > 0
-            conexion.commit()
-            return actualizado
-        except Exception:
-            if conexion:
-                conexion.rollback()
-            raise
-        finally:
-            if conexion:
-                conexion.close()
-
-    @staticmethod
-    def eliminar(id_usuario):
-        conexion = None
-        try:
-            conexion = abrir_conexion()
-            cursor = conexion.cursor()
-            marca = marcador_sql()
-            sql = f"DELETE FROM usuario WHERE id = {marca}"
-            cursor.execute(sql, (id_usuario,))
-            eliminado = cursor.rowcount > 0
-            conexion.commit()
-            return eliminado
-        except Exception:
-            if conexion:
-                conexion.rollback()
-            raise
-        finally:
-            if conexion:
-                conexion.close()
-
-    @staticmethod
-    def buscar_por_id(id_usuario):
-        conexion = None
-        try:
-            conexion = abrir_conexion()
-            cursor = conexion.cursor()
-            marca = marcador_sql()
-            sql = (
-                "SELECT id, empleado_id, nombre_usuario, password_hash "
-                f"FROM usuario WHERE id = {marca}"
-            )
-            cursor.execute(sql, (id_usuario,))
             fila = cursor.fetchone()
-            if fila is None:
-                return None
-            return UsuarioDAO._fila_a_usuario(fila)
+            return UsuarioDAO._fila_a_usuario(fila) if fila else None
         finally:
             if conexion:
                 conexion.close()
 
     @staticmethod
-    def buscar_por_nombre_usuario(nombre_usuario):
-        """Útil para validar el inicio de sesión / autenticación."""
+    def buscar_por_empleado(empleado_id):
         conexion = None
         try:
             conexion = abrir_conexion()
             cursor = conexion.cursor()
-            marca = marcador_sql()
-            sql = (
-                "SELECT id, empleado_id, nombre_usuario, password_hash "
-                f"FROM usuario WHERE nombre_usuario = {marca}"
+            m = marcador_sql()
+            cursor.execute(
+                f"SELECT id, nombre_usuario, password_hash, "
+                f"empleado_id, rol FROM usuario WHERE empleado_id = {m}",
+                (empleado_id,),
             )
-            cursor.execute(sql, (nombre_usuario,))
             fila = cursor.fetchone()
-            if fila is None:
-                return None
-            return UsuarioDAO._fila_a_usuario(fila)
+            return UsuarioDAO._fila_a_usuario(fila) if fila else None
         finally:
             if conexion:
                 conexion.close()
@@ -139,13 +86,13 @@ class UsuarioDAO:
             conexion = abrir_conexion()
             cursor = conexion.cursor()
             cursor.execute(
-                "SELECT id, empleado_id, nombre_usuario, password_hash FROM usuario"
+                "SELECT id, nombre_usuario, password_hash, "
+                "empleado_id, rol FROM usuario ORDER BY id"
             )
-            filas = cursor.fetchall()
-            usuarios = []
-            for fila in filas:
-                usuarios.append(UsuarioDAO._fila_a_usuario(fila))
-            return usuarios
+            return [
+                UsuarioDAO._fila_a_usuario(f)
+                for f in cursor.fetchall()
+            ]
         finally:
             if conexion:
                 conexion.close()
